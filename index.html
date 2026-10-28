@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb">
+  <meta name="description" content="Offline browser simulation of an ESP32 MicroPython smart refrigerator monitor and controller.">
+  <title>Smart Refrigerator | Monitoring Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to dashboard</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#dashboard" aria-label="Smart Refrigerator dashboard home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><rect x="7" y="3.5" width="18" height="25" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 14h17M11 9v2m0 6v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17v8m-3-6 6 4m0-4-6 4m3-8 2-2m-2 2-2-2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>
+        </span>
+        <span class="brand-copy"><strong>Frost<span>line</span></strong><small>SMART APPLIANCE LAB</small></span>
+      </a>
+
+      <nav class="top-nav" aria-label="Main navigation">
+        <a class="nav-link is-active" href="#dashboard">Dashboard</a>
+        <a class="nav-link" href="#about">About</a>
+      </nav>
+
+      <div class="topbar-right">
+        <span class="simulation-badge"><span class="status-dot" id="status-dot"></span><span id="simulation-status">Ready</span></span>
+        <button class="icon-button theme-button" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Toggle color theme">
+          <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="page-heading" id="dashboard" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">ESP32 MICROPYTHON SIMULATION</p>
+          <h1 id="page-title">Smart Refrigerator</h1>
+          <p class="page-subtitle">A live browser simulation of temperature monitoring and cooling control.</p>
+        </div>
+        <div class="simulation-controls" aria-label="Simulation controls">
+          <button class="button button-primary" id="start-button" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4.7v10.6L15.5 10 7 4.7Z" fill="currentColor"/></svg>
+            <span id="start-label">Start Simulation</span>
+          </button>
+          <button class="button button-secondary" id="pause-button" type="button" disabled>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.4 4.8h2.8v10.4H6.4zm4.4 0h2.8v10.4h-2.8z" fill="currentColor"/></svg>
+            Pause
+          </button>
+          <button class="button button-quiet" id="reset-button" type="button" title="Restore the initial simulation state">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.2 5.7v4h4M4.7 9.4a5.7 5.7 0 1 0 1.6-3.6L4.2 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Reset
+          </button>
+        </div>
+      </section>
+
+      <div class="simulation-notice" role="note">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <p><strong>Simulation mode</strong> — readings and controls are software-only. No physical refrigerator or ESP32 is connected.</p>
+      </div>
+      <div class="temperature-warning" id="temperature-warning" role="alert" aria-live="assertive" hidden>
+        <span class="warning-symbol" aria-hidden="true">!</span>
+        <p id="temperature-warning-text"></p>
+      </div>
+
+      <section class="summary-grid" aria-label="Current system summary">
+        <article class="summary-card temperature-summary">
+          <div class="summary-top"><span class="summary-label">Temperature</span><span class="summary-icon temp-icon" aria-hidden="true">°</span></div>
+          <div class="summary-value"><span id="summary-temperature">6.0</span><span class="unit">°C</span></div>
+          <div class="summary-foot"><span class="range-indicator" id="temperature-range-indicator"><i></i><span id="temperature-state-label">Normal range</span></span><span>4–8°C</span></div>
+          <div class="mini-meter" aria-hidden="true"><span id="mini-meter-fill"></span></div>
+        </article>
+
+        <article class="summary-card">
+          <div class="summary-top"><span class="summary-label">Cooling / Relay</span><span class="summary-icon relay-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14m8-14v14M5 8h14M5 16h14"/></svg></span></div>
+          <div class="summary-state"><span class="state-indicator" id="cooling-indicator"></span><strong id="cooling-state">OFF</strong></div>
+          <p class="summary-description" id="cooling-description">Compressor idle · ready to cool</p>
+          <div class="summary-foot"><span>Relay output</span><span class="mono" id="relay-output">LOW</span></div>
+        </article>
+
+        <article class="summary-card">
+          <div class="summary-top"><span class="summary-label">Door status</span><span class="summary-icon door-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 11h14m-3-5v2m0 6v2"/></svg></span></div>
+          <div class="summary-state"><span class="state-indicator" id="door-indicator"></span><strong id="door-state">CLOSED</strong></div>
+          <p class="summary-description" id="door-duration">Open duration · 00:00</p>
+          <div class="summary-foot"><span id="door-summary-note">Door sensor normal</span><span>Alarm at 00:30</span></div>
+        </article>
+
+        <article class="summary-card buzzer-summary" id="buzzer-card">
+          <div class="summary-top"><span class="summary-label">Buzzer / Alarm</span><span class="summary-icon alarm-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8 12h4"/></svg></span></div>
+          <div class="summary-state"><span class="state-indicator" id="buzzer-indicator"></span><strong id="buzzer-state">OFF</strong><span class="mute-state" id="mute-state">UNMUTED</span></div>
+          <p class="summary-description" id="alarm-reason">No active alarms</p>
+          <div class="summary-foot"><span id="audio-state">Laptop speaker audio</span><span id="alarm-count">0 alarms</span></div>
+        </article>
+      </section>
+
+      <section class="primary-grid" aria-label="Temperature and refrigerator controls">
+        <article class="panel control-panel" aria-labelledby="temperature-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">LIVE SENSOR READING</p><h2 id="temperature-heading">Temperature control</h2></div>
+            <span class="sensor-pill" id="sensor-pill"><span class="sensor-dot"></span><span id="sensor-label">DHT22 simulated</span></span>
+          </div>
+
+          <div class="temperature-layout">
+            <div class="gauge-column">
+              <div class="gauge-wrap" role="img" aria-label="Temperature gauge">
+                <svg class="temperature-gauge" viewBox="0 0 240 155" aria-hidden="true">
+                  <defs><linearGradient id="gauge-gradient" x1="0" x2="1"><stop offset="0%" stop-color="#35b7a2"/><stop offset="52%" stop-color="#4c9ee9"/><stop offset="100%" stop-color="#efaa59"/></linearGradient></defs>
+                  <path class="gauge-track" d="M28 132 A92 92 0 0 1 212 132"/>
+                  <path class="gauge-range" d="M75 53 A92 92 0 0 1 143 42"/>
+                  <path class="gauge-progress" id="gauge-progress" d="M28 132 A92 92 0 0 1 212 132"/>
+                  <text x="25" y="151" class="gauge-scale">−5°</text><text x="194" y="151" class="gauge-scale">30°</text>
+                </svg>
+                <div class="gauge-reading"><strong><span id="gauge-temperature">6.0</span><small>°C</small></strong><span id="temperature-context">Within target range</span></div>
+              </div>
+              <div class="gauge-legend"><span><i class="legend-normal"></i>4–8°C target</span><span><i class="legend-warning"></i>&gt;15°C alarm</span></div>
+            </div>
+
+            <div class="fridge-column">
+              <div class="fridge-illustration" aria-label="Illustration of a refrigerator with door status" role="img">
+                <div class="fridge-top"><span class="fridge-top-light"></span></div>
+                <div class="fridge-body" id="fridge-body"><div class="fridge-divider"></div><span class="fridge-handle fridge-handle-top"></span><span class="fridge-handle fridge-handle-bottom"></span><div class="fridge-snowflake" aria-hidden="true">✳</div></div>
+                <div class="fridge-base"><i></i><i></i></div>
+              </div>
+              <div class="fridge-caption"><span class="door-visual-dot" id="door-visual-dot"></span><span id="fridge-caption-text">Door securely closed</span></div>
+              <button class="button button-outline door-toggle" id="door-toggle" type="button" aria-pressed="false">Open refrigerator door</button>
+            </div>
+          </div>
+
+          <div class="temperature-controls">
+            <div class="range-heading"><label for="temperature-slider">Adjust simulated temperature</label><output id="temperature-output" for="temperature-slider">6.0°C</output></div>
+            <input id="temperature-slider" type="range" min="-5" max="30" step="0.5" value="6" aria-label="Simulated refrigerator temperature">
+            <div class="range-labels"><span>−5°C</span><span>30°C</span></div>
+            <div class="stepper-row">
+              <p>Manual adjustment</p>
+              <div class="stepper-buttons"><button class="button button-step" id="decrease-temperature" type="button" aria-label="Decrease temperature by 0.5 degrees">− <span>Decrease</span></button><button class="button button-step" id="increase-temperature" type="button" aria-label="Increase temperature by 0.5 degrees">+ <span>Increase</span></button></div>
+            </div>
+            <p class="sensor-error" id="sensor-error" role="alert" hidden><strong>DHT22 Sensor Error</strong><span>Last valid reading is retained for the display and cooling logic.</span></p>
+            <label class="toggle-row" for="sensor-failure-toggle"><span><strong>Simulate sensor failure</strong><small>Stops new readings; keeps the last valid value</small></span><input id="sensor-failure-toggle" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+        <article class="panel chart-panel" aria-labelledby="chart-heading">
+          <div class="panel-heading chart-heading">
+            <div><p class="eyebrow">RECENT SENSOR HISTORY</p><h2 id="chart-heading">Temperature history</h2></div>
+            <span class="chart-live"><i></i>LIVE</span>
+          </div>
+          <div class="chart-summary"><div><strong id="chart-current-temperature">6.0°C</strong><span id="chart-reading-caption">Current reading</span></div><span class="chart-window" id="chart-time-window">Last 2 min</span></div>
+          <div class="chart-canvas-wrap"><canvas id="temperature-chart" role="img" aria-label="Temperature history chart with thresholds at 4, 8, and 15 degrees Celsius"></canvas></div>
+          <div class="chart-legend"><span><i class="chart-key chart-key-temp"></i>Temperature</span><span><i class="chart-key chart-key-target"></i>Target band</span><span><i class="chart-key chart-key-alarm"></i>Alarm threshold</span></div>
+          <div class="chart-footnote" id="chart-footnote">History updates every second while the simulation runs.</div>
+        </article>
+      </section>
+
+      <section class="secondary-grid" aria-label="Alerts, event log, and system settings">
+        <article class="panel alarm-panel" aria-labelledby="alarm-heading">
+          <div class="panel-heading compact-heading">
+            <div><p class="eyebrow">AUDIO ALERTS</p><h2 id="alarm-heading">Buzzer controls</h2></div>
+            <span class="alarm-active-badge" id="alarm-badge"><i></i><span>All clear</span></span>
+          </div>
+          <p class="panel-intro">Alarm tones play through this laptop’s speakers using the browser’s Web Audio API.</p>
+          <div class="volume-row"><label for="volume-slider">Volume</label><span class="volume-icon" aria-hidden="true">◖</span><input id="volume-slider" type="range" min="0" max="100" value="35" aria-label="Buzzer volume"><output id="volume-output">35%</output></div>
+          <div class="button-row"><button class="button button-outline" id="test-buzzer" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8v4h3l4 3V5L6 8H3Zm10-1a4 4 0 0 1 0 6m2-8a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Test buzzer</button><button class="button button-secondary" id="mute-toggle" type="button" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8v4h3l4 3V5L6 8H3Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m14 8 4 4m0-4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span id="mute-label">Mute</span></button></div>
+          <p class="alarm-state-note" id="alarm-state-note">The visual alarm remains active if audio is muted.</p>
+        </article>
+
+        <article class="panel event-panel" aria-labelledby="event-heading">
+          <div class="panel-heading compact-heading">
+            <div><p class="eyebrow">SYSTEM ACTIVITY</p><h2 id="event-heading">Live event log</h2></div>
+            <button class="text-button" id="clear-log" type="button">Clear log</button>
+          </div>
+          <ol class="event-log" id="event-log" aria-live="polite" aria-relevant="additions"></ol>
+        </article>
+
+        <article class="panel thresholds-panel" aria-labelledby="thresholds-heading">
+          <div class="panel-heading compact-heading"><div><p class="eyebrow">CONTROL PARAMETERS</p><h2 id="thresholds-heading">System thresholds</h2></div><span class="table-icon" aria-hidden="true">⌗</span></div>
+          <div class="table-wrap"><table><thead><tr><th scope="col">Parameter</th><th scope="col">Value</th></tr></thead><tbody>
+            <tr><td>Temperature Cooling ON</td><td>Above 8°C</td></tr>
+            <tr><td>Temperature Cooling OFF</td><td>At or below 4°C</td></tr>
+            <tr><td>High Temperature Alarm</td><td>Above 15°C</td></tr>
+            <tr><td>Door Open Alarm</td><td>30 seconds</td></tr>
+            <tr><td>Main Update Interval</td><td>1 second</td></tr>
+            <tr><td>Sensor Retry Delay</td><td>2 seconds</td></tr>
+          </tbody></table></div>
+          <p class="hysteresis-note"><span aria-hidden="true">↔</span> Between 4°C and 8°C, the relay retains its previous state.</p>
+        </article>
+      </section>
+
+      <section class="about-section" id="about" aria-labelledby="about-heading">
+        <div class="about-heading"><p class="eyebrow">PROJECT OVERVIEW</p><h2 id="about-heading">How the simulation works</h2><p>This dashboard models the control loop from an ESP32 MicroPython refrigerator project. Adjust the sensor reading and door state to see how the controller responds in real time.</p></div>
+        <div class="component-grid">
+          <article class="component-card"><span class="component-symbol">°C</span><div><h3>DHT22</h3><p>Simulated temperature measurement. A failure retains the last valid reading.</p></div></article>
+          <article class="component-card"><span class="component-symbol">▯</span><div><h3>Door sensor</h3><p>Tracks the refrigerator door and starts a 30-second open alarm timer.</p></div></article>
+          <article class="component-card"><span class="component-symbol">↯</span><div><h3>Relay</h3><p>Turns simulated cooling on above 8°C and off at or below 4°C.</p></div></article>
+          <article class="component-card"><span class="component-symbol">♬</span><div><h3>Buzzer</h3><p>Browser generated beep tone for active alarms; mute affects audio only.</p></div></article>
+          <article class="component-card"><span class="component-symbol">◷</span><div><h3>JavaScript timer</h3><p>Runs the simulated main control loop approximately once per second.</p></div></article>
+          <article class="component-card"><span class="component-symbol">◖</span><div><h3>Web Audio API</h3><p>Creates the software buzzer after a user gesture, subject to browser audio support.</p></div></article>
+        </div>
+        <div class="working-principle"><span class="principle-icon" aria-hidden="true">✦</span><p><strong>Working principle</strong> The slider supplies the simulated sensor value. The JavaScript control loop applies relay hysteresis, checks the high-temperature and door timers, updates the chart and log, then sounds the buzzer when either alarm is active.</p></div>
+      </section>
+
+      <footer class="footer"><span>Frostline · Smart Refrigerator Simulation</span><span>Offline-ready · No hardware connection</span></footer>
+    </main>
+  </div>
+</body>
+</html>
